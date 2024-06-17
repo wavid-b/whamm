@@ -221,7 +221,10 @@ pub fn process_pair(whamm: &mut Whamm, script_count: usize, pair: Pair<Rule>, er
             let mut return_ty = DataType::Tuple { ty_info: vec![] };
             let mut body = Block {
                 stmts: vec![],
-                loc: Some(Location::from(&fn_name_line_col, &fn_name_line_col, None)),
+                loc: Some(Location {
+                    line_col: fn_name_line_col.clone(),
+                    path: None,
+                }),
             };
             //pair now holds the list of tokens in the fn_def rule
             for p in pair {
@@ -301,7 +304,7 @@ pub fn process_pair(whamm: &mut Whamm, script_count: usize, pair: Pair<Rule>, er
                 is_comp_provided: false,
                 name: fn_id,
                 params: args,
-                body: Some(body),
+                body,
                 return_ty: Some(return_ty),
             };
             let script: &mut Script = whamm.scripts.get_mut(script_count).unwrap();
@@ -331,10 +334,10 @@ pub fn block_from_rule(pair: Pair<Rule>, err: &mut ErrorGen) -> Block {
     });
 
     //create the block object and return it in the wrapper with result
-    return Block {
+    Block {
         stmts: body_vec,
         loc: Some(Location::from(&fn_name_line_col, &fn_name_line_col, None)),
-    };
+    }
 }
 fn fn_call_from_rule(pair: Pair<Rule>) -> Result<Expr, Vec<WhammError>> {
     trace!("Entering fn_call");
@@ -601,27 +604,24 @@ fn stmt_from_rule(pair: Pair<Rule>, err: &mut ErrorGen) -> Statement {
             let mut pair = pair.into_inner();
             let next_pair = pair.next();
             match next_pair {
-                None => {
-                    let output = Statement::Return {
-                        expr: Expr::Primitive {
-                            val: Value::Tuple {
-                                ty: DataType::Tuple { ty_info: vec![] },
-                                vals: vec![],
-                            },
-                            loc: Some(Location::from(
-                                &ret_statement_line_col,
-                                &ret_statement_line_col,
-                                None,
-                            )),
+                None => Statement::Return {
+                    expr: Expr::Primitive {
+                        val: Value::Tuple {
+                            ty: DataType::Tuple { ty_info: vec![] },
+                            vals: vec![],
                         },
                         loc: Some(Location::from(
                             &ret_statement_line_col,
                             &ret_statement_line_col,
                             None,
                         )),
-                    };
-                    return output;
-                }
+                    },
+                    loc: Some(Location::from(
+                        &ret_statement_line_col,
+                        &ret_statement_line_col,
+                        None,
+                    )),
+                },
                 Some(_) => {
                     expr_rule = next_pair.unwrap();
                     return match expr_from_pair(expr_rule) {

@@ -112,8 +112,7 @@ impl DataType {
             DataType::Tuple { ty_info } => {
                 white(true, "(".to_string(), buffer);
                 let mut is_first = true;
-                let types = ty_info;
-                for ty in types {
+                for ty in ty_info.iter() {
                     if !is_first {
                         white(true, ", ".to_string(), buffer);
                     }
@@ -181,16 +180,10 @@ pub enum Statement {
         loc: Option<Location>,
     },
 
-    /// Standalone `Expr` statement, which means we can write programs like this:
-    /// int main() {
-    ///   2 + 2;
-    ///   return 0;
-    /// }
     Expr {
         expr: Expr,
         loc: Option<Location>,
     },
-    //expr is like this in the parser, but later this does not work and returns an error
     Return {
         expr: Expr,
         loc: Option<Location>,
@@ -287,7 +280,7 @@ pub struct Fn {
     pub(crate) name: FnId,
     pub(crate) params: Vec<(Expr, DataType)>, // Expr::VarId -> DataType
     pub(crate) return_ty: Option<DataType>,
-    pub(crate) body: Option<Block>,
+    pub(crate) body: Block,
 }
 impl Fn {
     pub fn print(&self, buffer: &mut Buffer) {
@@ -450,7 +443,10 @@ impl Whamm {
             },
             params,
             return_ty: Some(DataType::Boolean),
-            body: None,
+            body: Block {
+                stmts: vec![],
+                loc: None,
+            },
         };
         let docs = ProvidedFunctionality {
             name: "strcmp".to_string(),
